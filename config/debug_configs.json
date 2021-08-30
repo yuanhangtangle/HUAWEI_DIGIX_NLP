@@ -1,0 +1,22 @@
+{
+  "label_name": "doctype",
+  "unlabeled_mark": "",
+  "wc_features_names": [
+    "title_num_char", "title_num_word", "title_num_keyword", "num_char", "num_char_del_stop",
+    "num_uni_char", "num_punc", "num_word", "num_uni_word", "num_noun", "num_adj",
+    "num_verb", "num_adv", "num_conj", "num_numeral", "num_para", "title_ratio_keyword",
+    "ratio_uni_char", "ratio_uni_word", "ratio_punc", "ratio_noun", "ratio_verb", "ratio_adj",
+    "ratio_adv", "ratio_conj", "ratio_numeral", "ratio_char_para", "ratio_word_para"
+  ],
+
+  "bert_version": "bert-base-chinese",
+  "csv_file_path": "./data/debug_set.csv",
+  "epochs": 10,
+
+  "labeled_batch_size": 4,
+  "unlabeled_batch_size": 28,
+  "semantic_configs": {
+
+  }
+
+}
