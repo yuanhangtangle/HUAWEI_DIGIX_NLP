@@ -27,6 +27,6 @@
 > 2021/09/02
 - define the labeled loss
   - TSA: training signal annealing
-    
+  - the implementation of `TSALoss` is inspired by `lr_schedulers` in `PyTorch`
 - together with the unlabeled loss:
   - prediction sharpening: I will leave this for tomorrow because I am NOT clear about what this is
