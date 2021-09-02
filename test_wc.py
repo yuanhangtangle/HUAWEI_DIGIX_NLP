@@ -39,13 +39,7 @@ if __name__ == '__main__':
     lr_sch = torch.optim.lr_scheduler.ExponentialLR(op, 0.99, verbose=True)
     joint_op = JointOptimizers([op], [lr_sch])
 
-    trainer = Trainer(
-        model=net,
-        dataloader=wc_dataloader,
-        loss_fn=loss_fn,
-        joint_optimizers=joint_op,
-        epochs=EPOCHS,
-        validator=validator
-    )
+    trainer = Trainer(model=net, dataloader=wc_dataloader, loss=loss_fn, joint_optimizers=joint_op, epochs=EPOCHS,
+                      validator=validator)
     trainer.train()
     # training loop

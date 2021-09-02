@@ -2,17 +2,25 @@ from transformers import BertTokenizer
 import re
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from typing import Tuple
+import torch
+from typing import List
 
+SEP = 102
+PAD = 0
+CLS = 101
 
 class Preprocessor:
     def __init__(
             self,
             bert_tokenizer_version,
-            max_sent_length: int = 512,
+            max_sent_length: int = 32,
+            max_doc_length: int = 32,
             truncation: bool = True,
     ):
         self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
-        self.max_length = max_sent_length
+        self.max_sent_length = max_sent_length
+        self.max_doc_length = max_doc_length
         self.truncation = truncation
 
     def sep_label_unlabel(self, labels, unlabeled_mark, *dfs):
@@ -23,7 +31,7 @@ class Preprocessor:
         labeled_labels = labels[labels != unlabeled_mark]
         return labeled_labels, tuple(labeled), tuple(unlabeled)
 
-    def get_label_dict(self, labels, unlabeled_mark=None) -> dict:
+    def get_label_dict(self, labels, unlabeled_mark=None) -> Tuple[dict, dict]:
         l = labels.unique()
         if unlabeled_mark is not None:
             l = l[l != unlabeled_mark]
@@ -63,7 +71,7 @@ class Preprocessor:
         token_type_ids = []
         for d in doc_seq:
             tk = self.tokenizer(
-                d, return_tensors='pt', padding=True,
+                d, return_tensors='pt', padding=True, max_length=self.max_sent_length,
                 truncation=self.truncation
             )
             input_ids.append(tk['input_ids'])
@@ -79,3 +87,23 @@ class Preprocessor:
     def min_max_scale(self, ds):
         mms = MinMaxScaler()
         return mms.fit_transform(ds)
+
+    def _pad_single_doc(self, doc_seq: torch.Tensor) -> torch.Tensor:
+        assert len(doc_seq.shape) == 2
+        doc_seq = doc_seq[0:self.max_doc_length, 0:self.max_sent_length]
+        doc_seq[:, -1] = SEP
+        padded_seq = torch.zeros(self.max_doc_length, self.max_sent_length).type(torch.long)
+        r = min(self.max_doc_length, doc_seq.shape[0])
+        c = min(self.max_sent_length, doc_seq.shape[1])
+        padded_seq[0:r, 0:c] = doc_seq[0:r, 0:c]
+        return padded_seq
+
+    def pad_docs(self, input_ids: List[torch.Tensor], attention_mask):
+        padded_inputs_ids = torch.stack([
+            self._pad_single_doc(s) for s in input_ids
+        ], dim=0)
+        padded_attention_mask = torch.stack([
+            self._pad_single_doc(a) for a in attention_mask
+        ], dim=0)
+        length = [min(len(d), self.max_doc_length) for d in input_ids]
+        return padded_inputs_ids, padded_attention_mask, length

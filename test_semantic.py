@@ -46,6 +46,6 @@ if __name__ == '__main__':
         OptimizerYH(Adam(net.none_bert_parameters(), lr=1e-3))
     ])
 
-    trainer = Trainer(model=net, dataloader=labeled_dataloader, loss_fn=loss_fn, joint_optimizers=op, epochs=EPOCHS)
+    trainer = Trainer(model=net, dataloader=labeled_dataloader, loss=loss_fn, joint_optimizers=op, epochs=EPOCHS)
     trainer.train()
     # training loop

@@ -15,7 +15,7 @@ class SemanticSubnet(nn.Module):
             lstm_hidden_size: int = 16,
             lstm_num_layers: int = 1,
             bidirectional: bool = True,
-            out_dim: int = 128,
+            out_dim: int = 64,
             lstm_dropout: float = 0.
             # debug:bool = False
     ):
@@ -34,14 +34,16 @@ class SemanticSubnet(nn.Module):
             out_features=out_dim
         )
 
-    def forward(self, x):
+    def forward(self, xs):
+        input_ids, attention_mask, doc_length = xs
+        bs = len(doc_length)
         _sm = []
-        for idx, _x in enumerate(x):
-            input_ids, attention_mask, token_type_ids, *_ = _x
+        for idx in range(bs):
+            l = doc_length[idx]
+            inp, att = input_ids[idx][0:l], attention_mask[idx][0:l]
             _o = self.bert(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                token_type_ids=token_type_ids
+                input_ids=inp,
+                attention_mask=att,
             ).pooler_output
             # transform 2d output to 3d
             _o = _o.unsqueeze(0)
@@ -49,7 +51,7 @@ class SemanticSubnet(nn.Module):
             _o, (_, _) = self.lstm(_o)
             _o = _o[:, -1, :]  # the last output
             _sm.append(self.mlp(_o))
-        _sm = torch.tensor(_sm, dtype=torch.float)
+        _sm = torch.cat(_sm, dim=0)
         return _sm
 
     def bert_parameters(self):
@@ -88,7 +90,7 @@ class WCSubnet(nn.Module):
             [Attention(hidden_size, hidden_size, num_head, drop_attn, drop_res) for i in range(num_layers - 1)]
         )
         # concat, mlp
-        self.mlp = nn.Linear( (num_numeral + 1) * hidden_size, out_dim)
+        self.mlp = nn.Linear((num_numeral + 1) * hidden_size, out_dim)
         # relu
 
     def forward(self, x):
@@ -97,13 +99,10 @@ class WCSubnet(nn.Module):
         cate, nume = x[:, 0].type(torch.long), x[:, 1:]  # cate.shape == (bs), nume.shape == (bs, nume)
         cate = self.embed(cate)  # cate.shape == (bs, em_d)
         nume = (nume.unsqueeze(1) * self.nume_W).transpose(-1, -2)  # nume.shape == (bs, nume, em_d)
-        embed = torch.cat([cate.unsqueeze(-2), nume], dim=-2) # embed.shape == (bs, nume + 1, em_d)
+        embed = torch.cat([cate.unsqueeze(-2), nume], dim=-2)  # embed.shape == (bs, nume + 1, em_d)
         attns = embed
         for attnLayers in self.attentions:
             attns, _ = attnLayers(attns)  # attns.shape == (bs, nume + 1, hidden_size)
         attns = attns.view(bs, -1)  # attns.shape == (bs, (nume + 1)*hidden_size)
         o = F.relu(self.mlp(attns))  # o.shape == (bs, out_dim)
         return o
-
-
-

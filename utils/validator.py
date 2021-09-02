@@ -4,26 +4,47 @@ from torch import nn
 import torch
 
 
+def micro_accuracy(preds, ys, num_classes):
+    return accuracy(preds, ys, average='micro', num_classes=num_classes)
+
+
+def macro_accuracy(preds, ys, num_classes):
+    return accuracy(preds, ys, average='macro', num_classes=num_classes)
+
+
+def my_auroc(preds, ys, num_classes):
+    return auroc(preds, ys, num_classes=num_classes)
+
+
+def micro_f1(preds, ys, num_classes):
+    return f1(preds, ys, num_classes=num_classes, average='micro')
+
+
+def macro_f1(preds, ys, num_classes):
+    return f1(preds, ys, num_classes=num_classes, average='macro')
+
+
 class Validator:
 
-    def __init__(self, model: nn.Module, dataset: Dataset, score='auroc'):
+    def __init__(self, model: nn.Module, dataloader, score='auroc'):
         self.model = model
-        self.num_classes = self.model.out_dim
-        self._x, self._y = dataset[:]
+        self.num_classes = self.model.num_classes
+        self.dataloader = dataloader
         self._best_score = -1
         score_func_map = {
-            'f1': self.micro_f1,
-            'micro_f1': self.micro_f1,
-            'macro_f1': self.macro_f1,
-            'acc': self.micro_accuracy,
-            'micro_acc': self.micro_accuracy,
-            'macro_acc': self.macro_accuracy,
-            'auroc': self.auroc
+            'f1': micro_f1,
+            'micro_f1': micro_f1,
+            'macro_f1': macro_f1,
+            'acc': micro_accuracy,
+            'micro_acc': micro_accuracy,
+            'macro_acc': macro_accuracy,
+            'auroc': my_auroc
         }
         self.score_func = score_func_map[score]
 
     def score(self):
-        s = self.score_func()
+        preds, ys = self.infer()
+        s = self.score_func(preds, ys, self.num_classes)
         is_best = False
         if s >= self._best_score:
             self._best_score = s
@@ -32,26 +53,9 @@ class Validator:
 
     def infer(self):
         self.model.eval()
+        preds, y = [], []
         with torch.no_grad():
-            preds = self.model.forward(self._x)
-        return preds
-
-    def micro_accuracy(self):
-        preds = self.infer()
-        return accuracy(preds, self._y, average='micro', num_classes=self.num_classes)
-
-    def macro_accuracy(self):
-        preds = self.infer()
-        return accuracy(preds, self._y, average='macro', num_classes=self.num_classes)
-
-    def auroc(self):
-        preds = self.infer()
-        return auroc(preds, self._y, num_classes=self.num_classes)
-
-    def micro_f1(self):
-        preds = self.infer()
-        return f1(preds, self._y, num_classes=self.num_classes, average='micro')
-
-    def macro_f1(self):
-        preds = self.infer()
-        return f1(preds, self._y, num_classes=self.num_classes, average='macro')
+            for xs, ys in enumerate(self.dataloader):
+                preds.append(self.model(xs))
+                y.append(ys)
+        return torch.cat(preds, dim=0), torch.cat(y, dim=-1)
