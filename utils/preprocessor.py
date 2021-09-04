@@ -6,7 +6,7 @@ import numpy as np
 
 from transformers import BertTokenizer
 from sklearn.preprocessing import MinMaxScaler
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 SEP = 102
 PAD = 0
@@ -16,16 +16,19 @@ CLS = 101
 class Preprocessor:
     def __init__(
             self,
-            bert_tokenizer_version,
+            bert_tokenizer_version: Optional[str] = None,
             max_sent_length: int = 32,
             max_doc_length: int = 32,
             truncation: bool = True,
     ):
-        self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
         self.max_sent_length = max_sent_length
         self.max_doc_length = max_doc_length
         self.truncation = truncation
-
+        self.bert_tokenizer_version = bert_tokenizer_version
+        self.tokenizer = None
+        if bert_tokenizer_version is not None:
+            self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
+        
     def sep_label_unlabel(self, labels, unlabeled_mark, *dfs):
         labeled = [], unlabeled = []
         for df in dfs:

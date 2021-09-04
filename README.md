@@ -44,3 +44,15 @@
 
 > 2021/09/04
 - construct a dataset using those `succFiles`
+- some files are incomplete ... DROP them
+- some seem to be wrong ??
+  - repeating words ...
+  - '\n' cut
+  - some translation is really funny ... hhhhhhhhh ...
+  
+- IT IS SO HARD FOR A SINGLE DEVELOPER TO REPEAT THE WORKS OF THOSE BIG COMPANIES!!!!
+  - Computing resource: limited
+  - Workload: HUGE
+  - Coding skills: poor ...
+  - tools support: build/find by yourself
+  - Money: damn it ...

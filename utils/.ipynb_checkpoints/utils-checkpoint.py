@@ -2,13 +2,11 @@ from sklearn.model_selection import train_test_split
 import torch
 import pandas as pd
 import json
-from typing import Optional
 
-def get_configs(config_path):
+
+def get_conifgs(config_path):
     with open(config_path, 'r') as f:
-        _config = json.load(f)
-    assert isinstance(_config, dict), "configs must be stored in a `dict`"
-    return Configs(_config)
+        return json.load(f)
 
 
 def generate_samples(x, y, n):
@@ -28,8 +26,6 @@ def read_json_to_dataframe(path: str, columns=None) -> pd.DataFrame:
     ds = pd.DataFrame(ds)
     if columns is not None:
         ds.columns = columns
-    else:
-        ds.columns = line.keys()
     return ds
 
 
@@ -43,14 +39,3 @@ def load_lr_scheduler(lr_sched_class, opt, state_dict):
     sched = lr_sched_class(opt, 0.9)
     sched.load_state_dict(state_dict)
     return sched
-
-
-class Configs:
-    def __init__(self, configs: dict):
-        for k, v in configs:
-            self.__dict__[k] = v
-
-if __name__ == '__main__':
-    cols = ['id', 'title', 'body', 'category', 'doctype']
-    corpus_p = '/home/yuanhang/HUAWEI_DIGIX/data/doc_quality_data_train.json'
-    wc_p = '/home/yuanhang/HUAWEI_DIGIX/data/train_wc.csv'
