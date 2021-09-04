@@ -1,4 +1,6 @@
 {
+  "labeled": true,
+  "debug": true,
   "label_name": "doctype",
   "unlabeled_mark": "",
   "wc_features_names": [
@@ -10,11 +12,12 @@
   ],
 
   "bert_version": "bert-base-chinese",
-  "csv_file_path": "./data/debug_set.csv",
+  "corpus_json": "debug_labeled_corpus.json",
+  "wc_csv": "debug_labeled_",
   "epochs": 10,
 
-  "labeled_batch_size": 4,
-  "unlabeled_batch_size": 28,
+  "labeled_batch_size": 2,
+  "unlabeled_batch_size": 2,
   "semantic_configs": {
 
   }

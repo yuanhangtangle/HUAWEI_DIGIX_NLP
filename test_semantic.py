@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 from torch.optim import AdamW, Adam
 from utils.dataset import DocDataset, SemanticDataset, BatchGenerator
-from utils.utils import get_conifgs
+from utils.utils import get_configs
 import torch.nn as nn
 from model.subnets import SemanticSubnet
 from utils.trainer import OptimizerYH, Trainer, SemanticTrainer
@@ -10,7 +10,7 @@ import torch
 
 
 def global_configs(configPath):
-    configs = get_conifgs(configPath)
+    configs = get_configs(configPath)
     labeled_batch_size = configs['labeled_batch_size']
     unlabeled_batch_size = configs['unlabeled_batch_size']
     epochs = configs['epochs']
@@ -26,10 +26,7 @@ if __name__ == '__main__':
     LABELED_BATCH_SIZE, UNLABELED_BATCH_SIZE, EPOCHS\
         = global_configs(configPath = './config/debug_se_configs.json')
 
-    doc_dataset = DocDataset(
-        labeled=True,
-        config_path=configPath
-    )
+    doc_dataset = DocDataset(config_path=configPath)
 
     semantic_dataset = SemanticDataset(doc_dataset)
     labeled_dataloader = BatchGenerator(

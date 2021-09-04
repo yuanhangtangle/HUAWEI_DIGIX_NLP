@@ -1,6 +1,6 @@
 from torch.optim import AdamW, Adam
 from utils.dataset import DocDataset, ModelDataset, ModelDataLoader
-from utils.utils import get_conifgs
+from utils.utils import get_configs
 import torch.nn as nn
 from model.model import Model
 from utils.trainer import Trainer
@@ -10,7 +10,7 @@ import torch
 
 
 def global_configs(config_path):
-    configs = get_conifgs(config_path)
+    configs = get_configs(config_path)
     labeled_batch_size = configs['labeled_batch_size']
     unlabeled_batch_size = configs['unlabeled_batch_size']
     epochs = configs['epochs']
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     LABELED_BATCH_SIZE, UNLABELED_BATCH_SIZE, EPOCHS \
         = global_configs(config_path=configPath)
 
-    doc_dataset = DocDataset(labeled=True, config_path=configPath)
+    doc_dataset = DocDataset(config_path=configPath)
     model_dataset = ModelDataset(doc_dataset)
     model_dataloader = ModelDataLoader(model_dataset, batch_size=LABELED_BATCH_SIZE, shuffle=True)
     net = Model()

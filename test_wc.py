@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 from torch.optim import AdamW, Adam
 from utils.dataset import DocDataset, WCDataset
-from utils.utils import get_conifgs
+from utils.utils import get_configs
 import torch.nn as nn
 from model.subnets import WCSubnet
 from utils.trainer import Trainer
@@ -11,7 +11,7 @@ import torch
 
 
 def global_configs(config_path):
-    configs = get_conifgs(config_path)
+    configs = get_configs(config_path)
     labeled_batch_size = configs['labeled_batch_size']
     unlabeled_batch_size = configs['unlabeled_batch_size']
     epochs = configs['epochs']
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     LABELED_BATCH_SIZE, UNLABELED_BATCH_SIZE, EPOCHS \
         = global_configs(config_path=configPath)
 
-    doc_dataset = DocDataset(labeled=True, config_path=configPath)
+    doc_dataset = DocDataset(config_path=configPath)
     wc_dataset = WCDataset(doc_dataset)
     wc_dataloader = DataLoader(wc_dataset, batch_size=LABELED_BATCH_SIZE, shuffle=True)
 

@@ -1,14 +1,17 @@
-from transformers import BertTokenizer
 import re
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
-from typing import Tuple
 import torch
-from typing import List
+
+import pandas as pd
+import numpy as np
+
+from transformers import BertTokenizer
+from sklearn.preprocessing import MinMaxScaler
+from typing import Tuple, List
 
 SEP = 102
 PAD = 0
 CLS = 101
+
 
 class Preprocessor:
     def __init__(
@@ -98,12 +101,20 @@ class Preprocessor:
         padded_seq[0:r, 0:c] = doc_seq[0:r, 0:c]
         return padded_seq
 
-    def pad_docs(self, input_ids: List[torch.Tensor], attention_mask):
+    def pad_docs(self, input_ids: List[torch.Tensor], attention_mask: List[torch.Tensor]) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         padded_inputs_ids = torch.stack([
             self._pad_single_doc(s) for s in input_ids
         ], dim=0)
         padded_attention_mask = torch.stack([
             self._pad_single_doc(a) for a in attention_mask
         ], dim=0)
-        length = [min(len(d), self.max_doc_length) for d in input_ids]
+        length = torch.tensor([min(len(d), self.max_doc_length) for d in input_ids], dtype=torch.int)
         return padded_inputs_ids, padded_attention_mask, length
+    
+    def cut_and_pad_docs(self, docs: pd.Series):
+        doc_seq = docs.apply(self.cut_doc)
+        bert_inputs = self.bert_tokenize(doc_seq)
+        input_ids = list(bert_inputs.input_ids)
+        attention_mask = list(bert_inputs.attention_mask)
+        return self.pad_docs(input_ids, attention_mask)

@@ -27,6 +27,20 @@
 > 2021/09/02
 - define the labeled loss
   - TSA: training signal annealing
-  - the implementation of `TSALoss` is inspired by `lr_schedulers` in `PyTorch`
+  - the implementation of `ClassificationLoss` is inspired by `lr_schedulers` in `PyTorch`
+  
 - together with the unlabeled loss:
-  - prediction sharpening: I will leave this for tomorrow because I am NOT clear about what this is
+  - prediction sharpening: I will leave this for tomorrow because I am NOT clear 
+    about what this is
+    
+> 2021/09/03
+- define the consistency loss
+- Back-translation by Baidu api finish its first stage
+- Oooooooooops! Something's wrong with my data
+  - storing corpus with `csv` file may lead to errors ...
+  - modify data storing methods
+- modify `config` settings
+- Samples that cause in the back-translation still cause error ... Maybe they are too long ???? 
+
+> 2021/09/04
+- construct a dataset using those `succFiles`

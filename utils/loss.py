@@ -1,11 +1,11 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from typing import Optional
+from typing import Optional, List, Tuple
 from abc import ABC, abstractmethod
 
 
-class TSALoss(nn.Module):
+class ClassificationLoss(nn.Module):
 
     def __init__(
             self,
@@ -15,7 +15,7 @@ class TSALoss(nn.Module):
             annealing: Optional[str] = 'linear',
             base_eta: Optional[float] = None
     ):
-        super(TSALoss, self).__init__()
+        super(ClassificationLoss, self).__init__()
         self.epochs = epochs
         self.last_epoch = last_epoch
         self.annealing = annealing
@@ -34,8 +34,8 @@ class TSALoss(nn.Module):
         :return: TSA cross entropy loss
         """
         conf = F.softmax(x, dim=1).max(dim=1).values
-        x = x[conf < self.eta]
-        y = y[conf < self.eta]
+        ind = conf < self.eta
+        x, y = x[ind], y[ind]
         return F.cross_entropy(x, y)
 
     def adjust_params(self):
@@ -66,3 +66,66 @@ class TSALoss(nn.Module):
     def load_state_dict(self, state_dict: dict):
         for k, v in state_dict.items():
             self.__dict__[k] = v
+
+
+class ConsistencyLoss:
+
+    def __init__(self, temp: float = 1, thresh: float = 0.5):
+        super(ConsistencyLoss, self).__init__()
+        self.thresh = thresh
+        self.temp = temp
+
+    def __call__(self, y_o, y_p):
+        conf = F.softmax(y_o, dim=1).max(dim=1).values
+        ind = conf > self.thresh
+        y_o, y_p = y_o[ind], y_p[ind]
+        bs = y_o.shape[0]
+        y_o = F.softmax(y_o / self.temp)
+        y_p = F.log_softmax(y_p)
+        return -torch.sum(y_o * y_p)/bs
+
+    def state_dict(self):
+        return {
+            'thresh': self.thresh,
+            'temp': self.temp
+        }
+
+    def load_state_dict(self, state_dict: dict):
+        for k, v in state_dict.items():
+            self.__dict__[k] = v
+
+
+class CombinedLoss:
+
+    def __init__(
+            self,
+            lamda: float = 1,
+            epochs: Optional[int] = 1,
+            num_classes: Optional[int] = 1,
+            last_epoch: int = -1,
+            annealing: Optional[str] = 'linear',
+            base_eta: Optional[float] = None,
+            temp: float = 1,
+            thresh: float = 0.5,
+    ):
+        super(CombinedLoss, self).__init__()
+        self.lamda = lamda
+        self.class_loss = ClassificationLoss(
+            epochs, num_classes, last_epoch, annealing, base_eta
+        )
+        self.cons_loss = ConsistencyLoss(temp, thresh)
+
+    def __call__(self, preds: tuple, target):
+        (y_l, y_o, y_p) = preds
+        return self.class_loss(y_l, target) + self.lamda * self.cons_loss(y_o, y_p)
+
+    def state_dict(self):
+        return [
+            self.class_loss.state_dict(),
+            self.cons_loss.state_dict()
+        ]
+
+    def load_state_dict(self, state_dict: List[dict, dict]):
+        class_dict, cons_dict = state_dict
+        self.class_loss.load_state_dict(class_dict)
+        self.cons_loss.load_state_dict(cons_dict)
