@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from typing import Optional, List, Tuple
-from abc import ABC, abstractmethod
+from typing import Optional, List, Tuple, Union
+from collections import defaultdict
 
 
 class ClassificationLoss(nn.Module):
@@ -67,6 +67,10 @@ class ClassificationLoss(nn.Module):
         for k, v in state_dict.items():
             self.__dict__[k] = v
 
+    def write_history(self, history: Union[dict, defaultdict]):
+        history['annealing_eta'].append(self.eta)
+        history['annealing_alpha'].append(self.alpha)
+
 
 class ConsistencyLoss:
 
@@ -76,13 +80,14 @@ class ConsistencyLoss:
         self.temp = temp
 
     def __call__(self, y_o, y_p):
+        assert y_o.shape == y_p.shape
         conf = F.softmax(y_o, dim=1).max(dim=1).values
         ind = conf > self.thresh
         y_o, y_p = y_o[ind], y_p[ind]
         bs = y_o.shape[0]
         y_o = F.softmax(y_o / self.temp)
         y_p = F.log_softmax(y_p)
-        return -torch.sum(y_o * y_p)/bs
+        return -torch.sum(y_o * y_p) / bs
 
     def state_dict(self):
         return {
@@ -95,7 +100,7 @@ class ConsistencyLoss:
             self.__dict__[k] = v
 
 
-class CombinedLoss:
+class JointLoss:
 
     def __init__(
             self,
@@ -108,7 +113,7 @@ class CombinedLoss:
             temp: float = 1,
             thresh: float = 0.5,
     ):
-        super(CombinedLoss, self).__init__()
+        super(JointLoss, self).__init__()
         self.lamda = lamda
         self.class_loss = ClassificationLoss(
             epochs, num_classes, last_epoch, annealing, base_eta
@@ -116,8 +121,8 @@ class CombinedLoss:
         self.cons_loss = ConsistencyLoss(temp, thresh)
 
     def __call__(self, preds: tuple, target):
-        (y_l, y_o, y_p) = preds
-        return self.class_loss(y_l, target) + self.lamda * self.cons_loss(y_o, y_p)
+        (y_pred, y_origin, y_pert) = preds
+        return self.class_loss(y_pred, target) + self.lamda * self.cons_loss(y_origin, y_pert)
 
     def state_dict(self):
         return [
@@ -125,7 +130,10 @@ class CombinedLoss:
             self.cons_loss.state_dict()
         ]
 
-    def load_state_dict(self, state_dict: List[dict, dict]):
+    def load_state_dict(self, state_dict: List[dict]):
         class_dict, cons_dict = state_dict
         self.class_loss.load_state_dict(class_dict)
         self.cons_loss.load_state_dict(cons_dict)
+
+    def write_history(self, history):
+        self.class_loss.write_history(history)

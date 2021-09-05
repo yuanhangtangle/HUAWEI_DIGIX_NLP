@@ -17,8 +17,8 @@ class Preprocessor:
     def __init__(
             self,
             bert_tokenizer_version: Optional[str] = None,
-            max_sent_length: int = 32,
-            max_doc_length: int = 32,
+            max_sent_length: int = 16,
+            max_doc_length: int = 4,
             truncation: bool = True,
     ):
         self.mms = MinMaxScaler()
@@ -95,11 +95,14 @@ class Preprocessor:
             'token_type_ids': token_type_ids
         })
 
-    def fit_scale(self, ds):
+    def mms_fit_scale(self, ds):
         self.mms.fit(ds)
         return self.mms.transform(ds)
 
-    def scale(self, ds):
+    def mms_fit(self, ds):
+        self.mms.fit(ds)
+
+    def mms_scale(self, ds):
         return self.mms.transform(ds)
 
     def _pad_single_doc(self, doc_seq: torch.Tensor) -> torch.Tensor:

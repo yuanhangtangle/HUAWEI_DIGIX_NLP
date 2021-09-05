@@ -1,6 +1,7 @@
 from typing import Optional
 import torch
 from tqdm import tqdm
+from collections import defaultdict
 from utils.joint_optimizer import JointOptimizers
 from utils.validator import Validator
 
@@ -26,46 +27,64 @@ class Trainer:
         self.save_path = save_path
         self.ep = 0
         self.verbose = verbose
+        self.history = defaultdict(list)
 
         if self.save_path is not None:
             assert validator is not None, "A `Validator` MUST be given if `save_path` is given"
 
-    def _train_single_epoch(self, epoch):
+    def _train_epoch(self, epoch):
         self.model.train()
-        for batch, (xs, ys) in tqdm(enumerate(self.dataloader)):
-            loss = self._train_single_batch(xs, ys)
+        for idx, batch in tqdm(enumerate(self.dataloader)):
+            loss = self._train_batch(batch)
             self.joint_optims.zero_grad()
             loss.backward()
             self.joint_optims.step()
             if self.verbose:
                 print(f"epoch {epoch} batch {batch}: loss = {loss.item():.4f}")
+        return loss
 
-        print(f"epoch {epoch}: loss = {loss.item():.4f}")
-        self.ep += 1
-        # if the given optimizers have lr_schedulers
-        if hasattr(self.joint_optims, 'adjust_lr'):
-            self.joint_optims.adjust_lr()
-        # the given loss may adjust parameters
-        if hasattr(self.loss, 'step'):
-            self.loss.step()
-
-    def _train_single_batch(self, xs, ys):
-        pred = self.model(xs)
+    def _train_batch(self, batch):
+        xs, ys = batch
+        if hasattr(self.model, 'train_batch'):
+            pred = self.model.train_batch(xs)
+        else:
+            pred = self.model(xs)
         loss = self.loss(pred, ys)
         return loss
 
     def train(self):
         for ep in range(self.ep, self.epochs):
-            self._train_single_epoch(ep)
             self.ep = ep
+            loss = self._train_epoch(ep)
+            print(f"epoch {ep}: loss = {loss.item():.4f}")
+            self.ep += 1
 
-            # print information and save models
+            # if the given optimizers have lr_schedulers
+            if hasattr(self.joint_optims, 'adjust_lr'):
+                self.joint_optims.adjust_lr()
+
+            # the given loss may adjust parameters
+            if hasattr(self.loss, 'step'):
+                self.loss.step()
+
+            # print information, write history and save models
             if self.validator is not None:
                 s, is_best = self.validator.score()
+                self.history['val_score'].append(s)
+                self.history['is_best'].append(is_best)
                 print(f"epoch {ep} : validation score = {s}")
                 if self.save_path is not None and is_best:
                     pass  # remain to save models
 
+            # write history
+            self.history['epoch'].append(self.ep)
+            self.history['loss'].append(loss.item())
+
+            for obj in [self.loss, self.joint_optims, self.validator]:
+                if hasattr(obj, 'write_history'):
+                    obj.write_history(self.history)
+
+    '''
     def save_states(self):
         torch.save({
             'ep': self.ep,
@@ -74,6 +93,7 @@ class Trainer:
             'joint_optimizers_state_dict': self.joint_optims.state_dict(),
             'loss': self.loss
         }, self.save_path)
+    '''
 
 
 class ModelTrainer(Trainer):
@@ -91,11 +111,11 @@ class ModelTrainer(Trainer):
         super(ModelTrainer, self).__init__(model, dataloader, loss_fn, joint_optimizers, epochs, validator, save_path,
                                            verbose)
 
-    def _train_single_epoch(self, epoch):
+    def _train_epoch(self, epoch):
         self.model.train()
         for batch, (inp, att, l, wc, ys) in enumerate(self.dataloader):
             xs = ((inp, att, l), wc)
-            loss = self._train_single_batch(xs)
+            loss = self._train_batch(xs)
             self.joint_optims.zero_grad()
             loss.backward()
             self.joint_optims.step()

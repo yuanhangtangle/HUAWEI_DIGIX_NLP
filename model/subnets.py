@@ -15,10 +15,11 @@ class SemanticSubnet(nn.Module):
             lstm_hidden_size: int = 16,
             lstm_num_layers: int = 1,
             bidirectional: bool = True,
-            out_dim: int = 64,
+            out_dim: int = 16,
             lstm_dropout: float = 0.
             # debug:bool = False
     ):
+        self.out_dim = out_dim
         super(SemanticSubnet, self).__init__()
         self.bert = BertModel.from_pretrained(bert_version)
         self.bert_dropout = nn.Dropout(p=bert_dropout)

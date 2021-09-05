@@ -5,6 +5,13 @@ import json
 from tqdm import tqdm
 from typing import Optional
 
+
+class _Container:
+    def __init__(self, objs: dict):
+        for k, v in objs.items():
+            self.__dict__[k] = v
+
+
 def get_configs(config_path):
     with open(config_path, 'r') as f:
         _config = json.load(f)
@@ -12,7 +19,7 @@ def get_configs(config_path):
     return _Container(_config)
 
 
-def generate_samples(x, y = None, n = None):
+def generate_samples(x, y=None, n=None):
     if y is None:
         _, xx = train_test_split(x, test_size=n)
     else:
@@ -56,14 +63,3 @@ def load_lr_scheduler(lr_sched_class, opt, state_dict):
     sched = lr_sched_class(opt, 0.9)
     sched.load_state_dict(state_dict)
     return sched
-
-
-class _Container:
-    def __init__(self, objs: dict):
-        for k, v in objs:
-            self.__dict__[k] = v
-
-if __name__ == '__main__':
-    cols = ['id', 'title', 'body', 'category', 'doctype']
-    corpus_p = '/home/yuanhang/HUAWEI_DIGIX/data/doc_quality_data_train.json'
-    wc_p = '/home/yuanhang/HUAWEI_DIGIX/data/train_wc.csv'

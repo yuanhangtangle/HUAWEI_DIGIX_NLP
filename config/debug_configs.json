@@ -1,7 +1,6 @@
 {
   "debug": true,
   "verbose": true,
-  "unlabeled_mark": "",
   "wc_names": [
     "title_num_char", "title_num_word", "title_num_keyword", "num_char", "num_char_del_stop",
     "num_uni_char", "num_punc", "num_word", "num_uni_word", "num_noun", "num_adj",
@@ -12,13 +11,11 @@
 
   "bert_version": "bert-base-chinese",
   "corpus_json": "data/debug/debug_corpus.json",
-  "wc_csv": "data/debug/debug_wc.csv",
+  "corpus_csv": "data/debug/debug_wc.csv",
+  "aux_json": "data/debug/back_trans.json",
+  "aux_csv": "data/debug/back_trans_wc.csv",
   "epochs": 10,
 
-  "labeled_batch_size": 2,
-  "unlabeled_batch_size": 2,
-  "semantic_configs": {
-
-  }
-
+  "class_batch_size": 2,
+  "aux_batch_size": 2
 }
