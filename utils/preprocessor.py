@@ -21,6 +21,8 @@ class Preprocessor:
             max_doc_length: int = 32,
             truncation: bool = True,
     ):
+        self.mms = MinMaxScaler()
+        self.mms_fitted_ = False
         self.max_sent_length = max_sent_length
         self.max_doc_length = max_doc_length
         self.truncation = truncation
@@ -28,7 +30,10 @@ class Preprocessor:
         self.tokenizer = None
         if bert_tokenizer_version is not None:
             self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
-        
+
+    def load_pretrained_tokenizer(self, bert_tokenizer_version):
+        self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
+
     def sep_label_unlabel(self, labels, unlabeled_mark, *dfs):
         labeled = [], unlabeled = []
         for df in dfs:
@@ -90,9 +95,12 @@ class Preprocessor:
             'token_type_ids': token_type_ids
         })
 
-    def min_max_scale(self, ds):
-        mms = MinMaxScaler()
-        return mms.fit_transform(ds)
+    def fit_scale(self, ds):
+        self.mms.fit(ds)
+        return self.mms.transform(ds)
+
+    def scale(self, ds):
+        return self.mms.transform(ds)
 
     def _pad_single_doc(self, doc_seq: torch.Tensor) -> torch.Tensor:
         assert len(doc_seq.shape) == 2

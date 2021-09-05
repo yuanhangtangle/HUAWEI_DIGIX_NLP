@@ -1,9 +1,8 @@
 {
-  "labeled": true,
   "debug": true,
-  "label_name": "doctype",
+  "verbose": true,
   "unlabeled_mark": "",
-  "wc_features_names": [
+  "wc_names": [
     "title_num_char", "title_num_word", "title_num_keyword", "num_char", "num_char_del_stop",
     "num_uni_char", "num_punc", "num_word", "num_uni_word", "num_noun", "num_adj",
     "num_verb", "num_adv", "num_conj", "num_numeral", "num_para", "title_ratio_keyword",
@@ -12,8 +11,8 @@
   ],
 
   "bert_version": "bert-base-chinese",
-  "corpus_json": "debug_labeled_corpus.json",
-  "wc_csv": "debug_labeled_",
+  "corpus_json": "data/debug/debug_corpus.json",
+  "wc_csv": "data/debug/debug_wc.csv",
   "epochs": 10,
 
   "labeled_batch_size": 2,

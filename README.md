@@ -56,3 +56,15 @@
   - Coding skills: poor ...
   - tools support: build/find by yourself
   - Money: damn it ...
+  
+> 2021/09/05
+- do a lot of date preprocessing
+- modify the implementation of the `dataset`
+- tips:
+  - preprocess your dataset to an appropriate form, and store them in an approriate data format
+    - corpus in `json`
+    - numerical features in `csv`
+  - make sub-folders in `data`: `debug`, `train`, `test`
+- I meet with some choices:
+  - I may preprocess my data when reading them into my `Dataset`, but different datasets may share
+    the same preprocessing tools
