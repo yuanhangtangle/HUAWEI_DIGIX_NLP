@@ -1,0 +1,7 @@
+{
+  "format": "[%(asctime)s] [%(filename)s] [%(levelname)s] :: %(message)s",
+  "level": "debug",
+  "event_file": "log/training.event",
+  "data_file": "log/training.data",
+  "exam_empty": true
+}

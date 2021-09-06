@@ -1,7 +1,0 @@
-{
-  "format": "%[(asctime)s] [%(filename)s] [line:%(lineno)s] [%(levelname)s] :: %(message)s",
-  "level": "info",
-  "event_file": "log/training.event",
-  "data_file": "log/training.data",
-  "exam_empty": true
-}

@@ -1,12 +1,13 @@
 from typing import Optional
 import logging
-from utils.logger import init_event_logger, DataLogger
+from utils.logger import get_event_logger, DataLogger
 from tqdm import tqdm
 from collections import defaultdict
 from utils.joint_optimizer import JointOptimizers
 from utils.validator import Validator
 
-# log
+
+logger = get_event_logger()
 
 
 class Trainer:
@@ -19,8 +20,7 @@ class Trainer:
             epochs: int,
             validator: Optional[Validator] = None,
             save_path: Optional[str] = None,
-            log:bool = True,
-            verbose: bool = False
+            log: bool = True
     ):
         self.dataloader = dataloader
         self.model = model
@@ -31,25 +31,40 @@ class Trainer:
         self.save_path = save_path
         self.ep = 0
         self.log = log
-        self.verbose = verbose
         self.history = defaultdict(list)
         self.log_header = ['epoch', 'loss']
+        self.event_logger = None
+        self.data_logger = None
+
         if self.save_path is not None:
             assert validator is not None, "A `Validator` MUST be given if `save_path` is given"
 
         if self.log:
-            init_event_logger()
-            l = ['epoch', 'loss']
+            header = self.log_header[:]
+            for obj in [self.loss, self.joint_optims, self.validator]:
+                if hasattr(obj, 'log_header'):
+                    header.extend(obj.log_header)
+            self.data_logger = DataLogger(header)
 
     def _train_epoch(self, epoch):
         self.model.train()
-        for idx, batch in tqdm(enumerate(self.dataloader)):
+        for idx, batch in enumerate(self.dataloader):
             loss = self._train_batch(batch)
+
+            if loss.item() == 0.:
+                logger.debug('NO sample used to compute loss')
+                continue
+
             self.joint_optims.zero_grad()
+
+            logger.debug("back-propagating ...")
             loss.backward()
+
+            logger.debug('back-propagation successful')
+            logger.debug(f"epoch {epoch} batch {idx}: loss = {loss.item():.4f}")
+
             self.joint_optims.step()
-            if self.verbose:
-                print(f"epoch {epoch} batch {batch}: loss = {loss.item():.4f}")
+
         return loss
 
     def _train_batch(self, batch):
@@ -62,10 +77,10 @@ class Trainer:
         return loss
 
     def train(self):
+        logger.info('start training ...')
         for ep in range(self.ep, self.epochs):
             self.ep = ep
             loss = self._train_epoch(ep)
-            print(f"epoch {ep}: loss = {loss.item():.4f}")
             self.ep += 1
 
             # if the given optimizers have lr_schedulers
@@ -73,25 +88,33 @@ class Trainer:
                 self.joint_optims.adjust_lr()
 
             # the given loss may adjust parameters
-            if hasattr(self.loss, 'step'):
-                self.loss.step()
+            if hasattr(self.loss, 'adjust_params'):
+                self.loss.adjust_params()
 
-            # print information, write history and save models
+            # print information, and save models
             if self.validator is not None:
-                s, is_best = self.validator.score()
-                self.history['val_score'].append(s)
-                self.history['is_best'].append(is_best)
-                print(f"epoch {ep} : validation score = {s}")
+                d_val = self.validator.epoch_info()
+                s, is_best = d_val['val_score'], d_val['is_best']
                 if self.save_path is not None and is_best:
                     pass  # remain to save models
 
             # write history
-            self.history['epoch'].append(self.ep)
-            self.history['loss'].append(loss.item())
+            d_epoch = {'epoch': self.ep, 'loss': loss.item()}
+            d_epoch.update(d_val)
+            for obj in [self.loss, self.joint_optims]:
+                if hasattr(obj, 'epoch_info'):
+                    d_epoch.update(obj.epoch_info())
+            self.write_history(d_epoch)
 
-            for obj in [self.loss, self.joint_optims, self.validator]:
-                if hasattr(obj, 'write_history'):
-                    obj.write_history(self.history)
+            # write log
+            if self.log:
+                self.data_logger.log_data(d_epoch)
+                logger.info(f"epoch: {self.ep :3d} loss: {loss.item():.3f} val_score: {s:.3f}")
+        logger.info('finish training ...')
+
+    def write_history(self, hist_d: dict):
+        for k, v in hist_d.items():
+            self.history[k].append(v)
 
     '''
     def save_states(self):
@@ -103,33 +126,3 @@ class Trainer:
             'loss': self.loss
         }, self.save_path)
     '''
-
-
-class ModelTrainer(Trainer):
-    def __init__(
-            self,
-            model,
-            dataloader,
-            loss_fn,
-            joint_optimizers: JointOptimizers,
-            epochs: int,
-            validator: Optional[Validator] = None,
-            save_path: Optional[str] = None,
-            verbose: bool = False
-    ):
-        super(ModelTrainer, self).__init__(model, dataloader, loss_fn, joint_optimizers, epochs, validator, save_path,
-                                           verbose)
-
-    def _train_epoch(self, epoch):
-        self.model.train()
-        for batch, (inp, att, l, wc, ys) in enumerate(self.dataloader):
-            xs = ((inp, att, l), wc)
-            loss = self._train_batch(xs)
-            self.joint_optims.zero_grad()
-            loss.backward()
-            self.joint_optims.step()
-            if self.verbose:
-                print(f"epoch {epoch} batch {batch}: loss = {loss.item():.4f}")
-
-        print(f"epoch {epoch}: loss = {loss.item():.4f}")
-        self.joint_optims.adjust_lr()

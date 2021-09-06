@@ -4,6 +4,9 @@ import torch
 import torch.nn.functional as F
 from itertools import chain
 from model.layers import Attention
+from utils.logger import get_event_logger
+
+logger = get_event_logger()
 
 
 class SemanticSubnet(nn.Module):
@@ -12,16 +15,17 @@ class SemanticSubnet(nn.Module):
             bert_version: str = 'bert-base-chinese',
             bert_embed_size: int = 768,
             bert_dropout: float = 0.1,
-            lstm_hidden_size: int = 16,
+            lstm_hidden_size: int = 128,
             lstm_num_layers: int = 1,
             bidirectional: bool = True,
-            out_dim: int = 16,
+            out_dim: int = 128,
             lstm_dropout: float = 0.
             # debug:bool = False
     ):
         self.out_dim = out_dim
         super(SemanticSubnet, self).__init__()
         self.bert = BertModel.from_pretrained(bert_version)
+        logger.debug('bert model loaded successfully')
         self.bert_dropout = nn.Dropout(p=bert_dropout)
         self.lstm = nn.LSTM(
             input_size=bert_embed_size,

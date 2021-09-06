@@ -1,7 +1,10 @@
+from utils.logger import get_event_logger
 from model.subnets import SemanticSubnet, WCSubnet
 import torch
 import torch.nn as nn
 from itertools import chain
+
+logger = get_event_logger()
 
 
 class Model(nn.Module):
@@ -33,8 +36,10 @@ class Model(nn.Module):
     def train_batch(self, xs):
         x, in1, in2 = xs
         y_label = self.forward(x)
+        logger.debug("classification batch forward-propagated")
         y_origin = self.forward(in1)
         y_pert = self.forward(in2)
+        logger.debug("consistency batch forward-propagated")
         return y_label, y_origin, y_pert
 
     def bert_parameters(self):

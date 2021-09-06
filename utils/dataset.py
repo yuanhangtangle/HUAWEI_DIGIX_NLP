@@ -1,6 +1,10 @@
 from torch.utils.data import Dataset, DataLoader
 from utils.preprocessor import Preprocessor
+from utils.logger import get_event_logger
 import torch
+
+
+logger = get_event_logger()
 
 
 class ClassDataset(Dataset):
@@ -11,13 +15,17 @@ class ClassDataset(Dataset):
             configs
     ):
         super(ClassDataset, self).__init__()
-        self.length = ds.shape[0]
 
+        logger.debug("building classification dataset ...")
+
+        self.length = ds.shape[0]
         self.labels, self.label_to_index, self.index_to_label = prep.map_label_to_index(ds.doctype, unlabeled_mark='')
         self.labels = torch.tensor(self.labels.to_numpy(), dtype=torch.long)  # .reshape(-1,1)
         self.inp, self.att, self.n_doc = prep.cut_and_pad_docs(ds.body)
         ds[configs.wc_names] = prep.mms_scale(ds[configs.wc_names])
         self.wc = torch.tensor(ds[['category'] + configs.wc_names].to_numpy(), dtype=torch.float)
+
+        logger.debug("classification dataset built successfully")
 
     def __len__(self):
         return self.length
@@ -35,11 +43,15 @@ class ClassDataset(Dataset):
 class BackTransDataset(Dataset):
     def __init__(self, ds, prep: Preprocessor, configs):
         super(BackTransDataset, self).__init__()
+
+        logger.debug('building back-translation dataset ...')
         self.length = ds.shape[0]
         self.src_inp, self.src_att, self.src_n_doc = prep.cut_and_pad_docs(ds.src)
         self.dst_inp, self.dst_att, self.dst_n_doc = prep.cut_and_pad_docs(ds.dst)
         ds[configs.wc_names] = prep.mms_scale(ds[configs.wc_names])
-        self.wc = torch.tensor(ds[[configs.category] + configs.wc_names].to_numpy(), dtype=torch.float)
+        self.wc = torch.tensor(ds[['category'] + configs.wc_names].to_numpy(), dtype=torch.float)
+
+        logger.debug('back-translation dataset built successfully')
 
     def __len__(self):
         return self.length

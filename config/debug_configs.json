@@ -1,6 +1,5 @@
 {
   "debug": true,
-  "verbose": true,
   "wc_names": [
     "title_num_char", "title_num_word", "title_num_keyword", "num_char", "num_char_del_stop",
     "num_uni_char", "num_punc", "num_word", "num_uni_word", "num_noun", "num_adj",
@@ -14,8 +13,15 @@
   "corpus_csv": "data/debug/debug_wc.csv",
   "aux_json": "data/debug/back_trans.json",
   "aux_csv": "data/debug/back_trans_wc.csv",
-  "epochs": 10,
+  "epochs": 100,
 
-  "class_batch_size": 2,
-  "aux_batch_size": 2
+  "class_batch_size": 8,
+  "aux_batch_size": 8,
+
+  "//": "the following are for logging",
+  "format": "[%(asctime)s] [%(filename)s] [%(levelname)s] :: %(message)s",
+  "level": "info",
+  "event_file": "log/training.event",
+  "data_file": "log/training.data",
+  "exam_empty": false
 }

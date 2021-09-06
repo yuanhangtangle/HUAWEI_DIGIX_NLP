@@ -26,11 +26,12 @@ def macro_f1(preds, ys, num_classes):
 
 class Validator:
 
-    def __init__(self, model: nn.Module, dataloader, score='auroc'):
+    def __init__(self, model: nn.Module, dataloader, score='f1'):
         self.model = model
         self.num_classes = self.model.num_classes
         self.dataloader = dataloader
         self._best_score = -1
+        self._last_score = -1
         self.log_header = ['is_best', 'val_score']
         score_func_map = {
             'f1': micro_f1,
@@ -43,20 +44,20 @@ class Validator:
         }
         self.score_func = score_func_map[score]
 
-    def score(self):
+    def epoch_info(self):
         preds, ys = self.infer()
-        s = self.score_func(preds, ys, self.num_classes)
+        s = self.score_func(preds, ys, self.num_classes).item()
         is_best = False
         if s >= self._best_score:
             self._best_score = s
             is_best = True
-        return s, is_best
+        return {'val_score': s, 'is_best': is_best}
 
     def infer(self):
         self.model.eval()
         preds, y = [], []
         with torch.no_grad():
-            for xs, ys in enumerate(self.dataloader):
+            for idx, (xs, ys) in enumerate(self.dataloader):
                 preds.append(self.model(xs))
                 y.append(ys)
         return torch.cat(preds, dim=0), torch.cat(y, dim=-1)

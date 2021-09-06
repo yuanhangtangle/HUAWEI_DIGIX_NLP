@@ -7,18 +7,20 @@ import numpy as np
 from transformers import BertTokenizer
 from sklearn.preprocessing import MinMaxScaler
 from typing import Tuple, List, Optional
+from utils.logger import get_event_logger
 
 SEP = 102
 PAD = 0
 CLS = 101
+logger = get_event_logger()
 
 
 class Preprocessor:
     def __init__(
             self,
-            bert_tokenizer_version: Optional[str] = None,
+            bert_version: Optional[str] = None,
             max_sent_length: int = 16,
-            max_doc_length: int = 4,
+            max_doc_length: int = 16,
             truncation: bool = True,
     ):
         self.mms = MinMaxScaler()
@@ -26,13 +28,15 @@ class Preprocessor:
         self.max_sent_length = max_sent_length
         self.max_doc_length = max_doc_length
         self.truncation = truncation
-        self.bert_tokenizer_version = bert_tokenizer_version
+        self.bert_version = bert_version
         self.tokenizer = None
-        if bert_tokenizer_version is not None:
-            self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
+        if bert_version is not None:
+            self.load_pretrained_tokenizer(self.bert_version)
 
     def load_pretrained_tokenizer(self, bert_tokenizer_version):
+        logger.debug("loading bert tokenizer ...")
         self.tokenizer = BertTokenizer.from_pretrained(bert_tokenizer_version)
+        logger.debug("bert tokenizer loaded successfully")
 
     def sep_label_unlabel(self, labels, unlabeled_mark, *dfs):
         labeled = [], unlabeled = []
@@ -127,8 +131,16 @@ class Preprocessor:
         return padded_inputs_ids, padded_attention_mask, length
     
     def cut_and_pad_docs(self, docs: pd.Series):
+        logger.debug("cutting documents ...")
         doc_seq = docs.apply(self.cut_doc)
+
+        logger.debug('tokenizing documents ...')
         bert_inputs = self.bert_tokenize(doc_seq)
         input_ids = list(bert_inputs.input_ids)
         attention_mask = list(bert_inputs.attention_mask)
-        return self.pad_docs(input_ids, attention_mask)
+
+        logger.debug('padding documents ...')
+        o = self.pad_docs(input_ids, attention_mask)
+        logger.debug('document cut and padded successfully')
+
+        return o
