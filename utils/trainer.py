@@ -1,9 +1,12 @@
 from typing import Optional
-import torch
+import logging
+from utils.logger import init_event_logger, DataLogger
 from tqdm import tqdm
 from collections import defaultdict
 from utils.joint_optimizer import JointOptimizers
 from utils.validator import Validator
+
+# log
 
 
 class Trainer:
@@ -16,6 +19,7 @@ class Trainer:
             epochs: int,
             validator: Optional[Validator] = None,
             save_path: Optional[str] = None,
+            log:bool = True,
             verbose: bool = False
     ):
         self.dataloader = dataloader
@@ -26,11 +30,16 @@ class Trainer:
         self.validator = validator
         self.save_path = save_path
         self.ep = 0
+        self.log = log
         self.verbose = verbose
         self.history = defaultdict(list)
-
+        self.log_header = ['epoch', 'loss']
         if self.save_path is not None:
             assert validator is not None, "A `Validator` MUST be given if `save_path` is given"
+
+        if self.log:
+            init_event_logger()
+            l = ['epoch', 'loss']
 
     def _train_epoch(self, epoch):
         self.model.train()

@@ -31,6 +31,7 @@ class Validator:
         self.num_classes = self.model.num_classes
         self.dataloader = dataloader
         self._best_score = -1
+        self.log_header = ['is_best', 'val_score']
         score_func_map = {
             'f1': micro_f1,
             'micro_f1': micro_f1,
